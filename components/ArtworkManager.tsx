@@ -22,6 +22,8 @@ export default function ArtworkManager() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
+  const [selectedType, setSelectedType] = useState<'all' | 'portfolio' | 'scratch'>('all')
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 25
   const [formData, setFormData] = useState({
@@ -29,6 +31,7 @@ export default function ArtworkManager() {
     description: '',
     categoryIds: [] as number[],
     image: null as File | null,
+    type: 'portfolio' as 'portfolio' | 'scratch',
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; artworkId: number | null }>({
@@ -42,7 +45,7 @@ export default function ArtworkManager() {
 
   useEffect(() => {
     fetchArtworks()
-  }, [currentPage, searchTerm, selectedCategoryIds])
+  }, [currentPage, searchTerm, selectedCategoryIds, selectedType])
 
 
   const fetchArtworks = async () => {
@@ -59,6 +62,10 @@ export default function ArtworkManager() {
 
       if (selectedCategoryIds.length > 0) {
         params.append('categoryIds', JSON.stringify(selectedCategoryIds))
+      }
+
+      if (selectedType !== 'all') {
+        params.append('type', selectedType)
       }
 
       const response = await apiRequest<{
@@ -107,6 +114,7 @@ export default function ArtworkManager() {
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
       formDataToSend.append('categoryIds', JSON.stringify(formData.categoryIds))
+      formDataToSend.append('type', formData.type)
 
       await apiRequest<Artwork>('/artworks', {
         method: 'POST',
@@ -132,6 +140,7 @@ export default function ArtworkManager() {
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
       formDataToSend.append('categoryIds', JSON.stringify(formData.categoryIds))
+      formDataToSend.append('type', formData.type)
 
       await apiRequest<Artwork>(`/artworks/${id}`, {
         method: 'PUT',
@@ -171,6 +180,7 @@ export default function ArtworkManager() {
       description: artwork.description || '',
       categoryIds: artwork.artwork_categories.map(ac => ac.category.id),
       image: null,
+      type: (artwork as any).type || 'portfolio',
     })
     // Show current artwork image as preview when editing
     setImagePreview(artwork.image_path)
@@ -183,6 +193,7 @@ export default function ArtworkManager() {
       description: '',
       categoryIds: [],
       image: null,
+      type: 'portfolio',
     })
     setImagePreview(null)
     setShowCreateForm(false)
@@ -217,7 +228,7 @@ export default function ArtworkManager() {
   // Reset to first page when search/filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, selectedCategoryIds])
+  }, [searchTerm, selectedCategoryIds, selectedType])
 
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
@@ -262,6 +273,56 @@ export default function ArtworkManager() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-full text-gray-900 placeholder-gray-500"
               />
+            </div>
+            <div className="relative w-full sm:w-48">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <button
+                onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
+                className="pl-10 w-full h-10 px-3 py-2 border border-gray-300 bg-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left text-gray-900 flex items-center justify-between"
+              >
+                <span className="truncate">
+                  {selectedType === 'all' ? 'All Types' : selectedType === 'portfolio' ? 'Portfolio' : 'Scratch'}
+                </span>
+                <svg className="w-4 h-4 text-gray-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {typeDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setSelectedType('all')
+                        setTypeDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded transition-colors ${selectedType === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                    >
+                      All Types
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedType('portfolio')
+                        setTypeDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded transition-colors ${selectedType === 'portfolio' ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                    >
+                      Portfolio
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedType('scratch')
+                        setTypeDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded transition-colors ${selectedType === 'scratch' ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                    >
+                      Scratch
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="relative w-full sm:w-64">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -409,6 +470,34 @@ export default function ArtworkManager() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-2">Type <span className="text-red-500">*</span></label>
+                <div className="flex gap-4">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="type"
+                      value="portfolio"
+                      checked={formData.type === 'portfolio'}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value as 'portfolio' | 'scratch' })}
+                      className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Portfolio</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="type"
+                      value="scratch"
+                      checked={formData.type === 'scratch'}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value as 'portfolio' | 'scratch' })}
+                      className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Scratch</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-2">Categories</label>
                 <div className="flex flex-wrap gap-2">
                   {categories.map((category) => (
@@ -466,15 +555,15 @@ export default function ArtworkManager() {
                 {searchTerm || selectedCategoryIds.length > 0 ? <Search className="w-12 h-12 mx-auto" /> : <ImageIcon className="w-12 h-12 mx-auto" />}
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm || selectedCategoryIds.length > 0 ? 'No artworks found' : 'No artworks yet'}
+                {searchTerm || selectedCategoryIds.length > 0 || selectedType !== 'all' ? 'No artworks found' : 'No artworks yet'}
               </h3>
               <p className="text-gray-600 mb-4">
-                {searchTerm || selectedCategoryIds.length > 0
+                {searchTerm || selectedCategoryIds.length > 0 || selectedType !== 'all'
                   ? 'No artworks match your current search and filter criteria. Try adjusting your search terms or filters.'
                   : 'Upload your first artwork to get started.'
                 }
               </p>
-              {!searchTerm && selectedCategoryIds.length === 0 && (
+              {!searchTerm && selectedCategoryIds.length === 0 && selectedType === 'all' && (
                 <Button onClick={() => setShowCreateForm(true)} className="w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   Add First Artwork
@@ -484,7 +573,7 @@ export default function ArtworkManager() {
           </Card>
         ) :
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
               {artworks.map((artwork) => (
                 <Card key={artwork.id} className="overflow-hidden">
                   <div className="aspect-square bg-gray-100 relative">
@@ -500,14 +589,22 @@ export default function ArtworkManager() {
                   <CardContent className="p-4">
                     <div className="flex justify-between mb-2">
                       <div className="flex flex-col">
-                        <h3 className="font-medium text-md line-clamp-1 mr-2">
-                          {artwork.title || 'Untitled'}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium text-md line-clamp-1">
+                            {artwork.title || 'Untitled'}
+                          </h3>
+                          <span className={`px-2 py-1 text-xs rounded-full ${(artwork as any).type === 'portfolio'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-orange-100 text-orange-700'
+                            }`}>
+                            {(artwork as any).type === 'portfolio' ? 'Portfolio' : 'Scratch'}
+                          </span>
+                        </div>
                         <p className="text-sm text-gray-600">
                           {artwork.description || ''}
                         </p>
                       </div>
-                      <div className="flex flex-col items-center space-y-2">
+                      <div className="flex flex-col items-end space-y-2">
                         <div className="text-xs text-gray-500 whitespace-nowrap">
                           {new Date(artwork.updated_at || artwork.created_at).toLocaleDateString('en-US', {
                             year: 'numeric',

@@ -26,11 +26,11 @@ export default function Dashboard({ onSectionChange }: DashboardProps) {
   const fetchStats = async () => {
     try {
       const [artworksResponse, projectsResponse, categories] = await Promise.all([
-        apiRequest<{data: Artwork[], pagination: {total: number}}>('/artworks?limit=1'),
-        apiRequest<{data: Project[], pagination: {total: number}}>('/projects?limit=1'),
+        apiRequest<{ data: Artwork[], pagination: { total: number } }>('/artworks/my?limit=1000'),
+        apiRequest<{ data: Project[], pagination: { total: number } }>('/projects/my?limit=1000'),
         apiRequest<Category[]>('/categories'),
       ])
-      
+
       setStats({
         artworks: artworksResponse.pagination.total,
         projects: projectsResponse.pagination.total,
@@ -133,7 +133,7 @@ export default function Dashboard({ onSectionChange }: DashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div 
+            <div
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
               onClick={() => onSectionChange?.('artworks')}
             >
@@ -141,7 +141,7 @@ export default function Dashboard({ onSectionChange }: DashboardProps) {
               <h3 className="font-medium">Add New Artwork</h3>
               <p className="text-sm text-gray-600">Upload a new art piece</p>
             </div>
-            <div 
+            <div
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
               onClick={() => onSectionChange?.('projects')}
             >
@@ -149,7 +149,7 @@ export default function Dashboard({ onSectionChange }: DashboardProps) {
               <h3 className="font-medium">Create Project</h3>
               <p className="text-sm text-gray-600">Start a new project collection</p>
             </div>
-            <div 
+            <div
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
               onClick={() => onSectionChange?.('categories')}
             >

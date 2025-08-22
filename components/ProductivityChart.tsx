@@ -49,8 +49,8 @@ export default function ProductivityChart({ className }: ProductivityChartProps)
       
       // Fetch all artworks and projects for the selected year (no pagination needed for chart data)
       const [artworksResponse, projectsResponse] = await Promise.all([
-        apiRequest<{data: Artwork[], pagination: {total: number}}>('/artworks?limit=1000'), // Get all artworks
-        apiRequest<{data: Project[], pagination: {total: number}}>('/projects?limit=1000')   // Get all projects
+        apiRequest<{data: Artwork[], pagination: {total: number}}>('/artworks/my?limit=1000'), // Get all artworks
+        apiRequest<{data: Project[], pagination: {total: number}}>('/projects/my?limit=1000')   // Get all projects
       ])
       
       const artworks = artworksResponse.data
