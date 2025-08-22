@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Save, User, Mail, Calendar, Hash, Plus, X, Camera, Loader2 } from 'lucide-react'
-import { apiRequest, getImageKitUrl } from '@/lib/utils'
+import { Save, User as UserIcon, Mail, Calendar, Hash, Plus, X, Camera, Loader2 } from 'lucide-react'
+import { apiRequest } from '@/lib/utils'
+import { User } from '@/types'
 import { AlertDialog } from '@/components/ui/dialog'
 
 export default function ProfileManager() {
@@ -144,12 +145,12 @@ export default function ProfileManager() {
       const formData = new FormData()
       formData.append('image', file)
 
-      const response = await apiRequest<{ user: any; imageUrl: string }>('/auth/profile/image', {
+      const response = await apiRequest<{ user: User; imageUrl: string }>('/auth/profile/image', {
         method: 'POST',
         body: formData,
       })
 
-      setProfileImage(response.user.profile_image_path)
+      setProfileImage(response.user.profile_image_path || null)
 
       setAlertDialog({
         open: true,
@@ -184,7 +185,7 @@ export default function ProfileManager() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
+              <UserIcon className="w-5 h-5" />
               Account Info
             </CardTitle>
             <CardDescription>
@@ -202,7 +203,7 @@ export default function ProfileManager() {
                 <span className="font-mono">{user.id}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-gray-400" />
+                <UserIcon className="w-4 h-4 text-gray-400" />
                 <span className="text-gray-600">Username:</span>
                 <span className="font-medium">{user.username}</span>
               </div>
@@ -240,7 +241,7 @@ export default function ProfileManager() {
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                        <User className="w-8 h-8 text-white" />
+                        <UserIcon className="w-8 h-8 text-white" />
                       </div>
                     )}
                   </div>
@@ -270,7 +271,7 @@ export default function ProfileManager() {
               <form onSubmit={(e) => { e.preventDefault(); updateProfile(); }} className="space-y-4 mt-8">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium mb-2">
-                    <User className="w-4 h-4 inline mr-2" />
+                    <UserIcon className="w-4 h-4 inline mr-2" />
                     Name
                   </label>
                   <Input

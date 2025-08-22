@@ -84,13 +84,13 @@ export async function apiRequest<T>(
   endpoint: string, 
   options?: {
     method?: string
-    body?: any
+    body?: unknown
     headers?: Record<string, string>
   }
 ): Promise<T> {
   try {
     const config: AxiosRequestConfig = {
-      method: options?.method?.toLowerCase() as any || 'get',
+      method: (options?.method?.toLowerCase() as 'get' | 'post' | 'put' | 'delete' | 'patch') || 'get',
       url: endpoint,
       headers: options?.headers,
     }

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Trash2, Edit3, Save, X, Image as ImageIcon, Loader2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
-import { apiRequest, API_BASE_URL } from '@/lib/utils'
+import { apiRequest } from '@/lib/utils'
 import { Artwork, Category } from '@/types'
 import { ConfirmDialog } from '@/components/ui/dialog'
 
