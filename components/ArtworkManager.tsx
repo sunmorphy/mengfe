@@ -71,7 +71,7 @@ export default function ArtworkManager() {
           hasNextPage: boolean
           hasPrevPage: boolean
         }
-      }>(`/artworks?${params.toString()}`)
+      }>(`/artworks/my?${params.toString()}`)
 
       setArtworks(response.data)
       setTotalItems(response.pagination.total)

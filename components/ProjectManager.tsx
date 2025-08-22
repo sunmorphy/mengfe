@@ -75,7 +75,7 @@ export default function ProjectManager() {
           hasNextPage: boolean
           hasPrevPage: boolean
         }
-      }>(`/projects?${params.toString()}`)
+      }>(`/projects/my?${params.toString()}`)
 
       setProjects(response.data)
       setTotalItems(response.pagination.total)

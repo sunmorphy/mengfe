@@ -28,7 +28,7 @@ export default function CategoryManager() {
 
   const fetchCategories = async () => {
     try {
-      const data = await apiRequest<Category[]>('/categories')
+      const data = await apiRequest<Category[]>('/categories/my')
       setCategories(data)
     } catch (error) {
       console.error('Failed to fetch categories:', error)
@@ -63,7 +63,7 @@ export default function CategoryManager() {
         method: 'PUT',
         body: JSON.stringify({ name: name.trim() }),
       })
-      setCategories(categories.map(cat => 
+      setCategories(categories.map(cat =>
         cat.id === id ? updatedCategory : cat
       ))
       setEditingId(null)
@@ -151,8 +151,8 @@ export default function CategoryManager() {
               onKeyPress={(e) => e.key === 'Enter' && createCategory()}
               className="flex-1"
             />
-            <Button 
-              onClick={createCategory} 
+            <Button
+              onClick={createCategory}
               disabled={!newCategoryName.trim() || isCreating}
               className="w-full sm:w-auto"
             >
@@ -253,7 +253,7 @@ export default function CategoryManager() {
               {searchTerm ? 'No categories found' : 'No categories yet'}
             </h3>
             <p className="text-gray-600">
-              {searchTerm 
+              {searchTerm
                 ? `No categories match "${searchTerm}". Try a different search term.`
                 : 'Create your first category to get started organizing your content.'
               }
