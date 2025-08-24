@@ -22,6 +22,7 @@ export interface Artwork {
   image_path: string
   title?: string
   description?: string
+  type: 'portfolio' | 'scratch'
   created_at: string
   updated_at: string
   artwork_categories: { category: Category }[]

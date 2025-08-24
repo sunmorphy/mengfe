@@ -180,7 +180,7 @@ export default function ArtworkManager() {
       description: artwork.description || '',
       categoryIds: artwork.artwork_categories.map(ac => ac.category.id),
       image: null,
-      type: (artwork as any).type || 'portfolio',
+      type: artwork.type || 'portfolio',
     })
     // Show current artwork image as preview when editing
     setImagePreview(artwork.image_path)
@@ -593,11 +593,11 @@ export default function ArtworkManager() {
                           <h3 className="font-medium text-md line-clamp-1">
                             {artwork.title || 'Untitled'}
                           </h3>
-                          <span className={`px-2 py-1 text-xs rounded-full ${(artwork as any).type === 'portfolio'
+                          <span className={`px-2 py-1 text-xs rounded-full ${artwork.type === 'portfolio'
                             ? 'bg-green-100 text-green-700'
                             : 'bg-orange-100 text-orange-700'
                             }`}>
-                            {(artwork as any).type === 'portfolio' ? 'Portfolio' : 'Scratch'}
+                            {artwork.type === 'portfolio' ? 'Portfolio' : 'Scratch'}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600">
