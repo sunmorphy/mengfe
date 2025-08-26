@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import RichTextEditor from '@/components/ui/rich-text-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Save, User as UserIcon, Mail, Calendar, Hash, Plus, X, Camera, Loader2 } from 'lucide-react'
 import { apiRequest } from '@/lib/utils'
@@ -301,12 +301,11 @@ export default function ProfileManager() {
                   <label htmlFor="summary" className="block text-sm font-medium mb-2">
                     Summary
                   </label>
-                  <Textarea
-                    id="summary"
+                  <RichTextEditor
                     value={formData.summary}
-                    onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                    onChange={(html) => setFormData({ ...formData, summary: html })}
                     placeholder="Tell us about yourself..."
-                    rows={4}
+                    className="min-h-[120px]"
                   />
                 </div>
 
