@@ -18,6 +18,8 @@ export default function ProfileManager() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    role: '',
+    short_summary: '',
     summary: '',
     socials: [] as string[],
   })
@@ -35,6 +37,8 @@ export default function ProfileManager() {
       setFormData({
         name: user.name || '',
         email: user.email || '',
+        role: user.role || '',
+        short_summary: user.short_summary || '',
         summary: user.summary || '',
         socials: user.socials || [],
       })
@@ -294,6 +298,32 @@ export default function ProfileManager() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="your.email@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="role" className="block text-sm font-medium mb-2">
+                    Role
+                  </label>
+                  <Input
+                    id="role"
+                    type="text"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    placeholder="e.g. Artist, Designer, Photographer"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="short_summary" className="block text-sm font-medium mb-2">
+                    Short Summary
+                  </label>
+                  <Input
+                    id="short_summary"
+                    type="text"
+                    value={formData.short_summary}
+                    onChange={(e) => setFormData({ ...formData, short_summary: e.target.value })}
+                    placeholder="Brief description about yourself"
                   />
                 </div>
 

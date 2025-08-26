@@ -3,6 +3,8 @@ export interface User {
   username: string
   name?: string
   email: string
+  role?: string
+  short_summary?: string
   summary?: string
   socials?: string[]
   profile_image_path?: string
