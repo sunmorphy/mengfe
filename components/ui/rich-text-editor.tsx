@@ -195,6 +195,13 @@ export default function RichTextEditor({
     immediatelyRender: false,
   })
 
+  // Update editor content when value prop changes
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value || '')
+    }
+  }, [editor, value])
+
   return (
     <div className={`border border-gray-300 rounded-md flex flex-col ${className}`}>
       <MenuBar editor={editor} />
