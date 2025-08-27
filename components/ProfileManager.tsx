@@ -87,7 +87,7 @@ export default function ProfileManager() {
         ...formData,
         banner_image_path: bannerImage
       }
-      
+
       await apiRequest('/auth/profile', {
         method: 'PUT',
         body: JSON.stringify(profileData),
@@ -395,19 +395,6 @@ export default function ProfileManager() {
                 </div>
 
                 <div>
-                  <label htmlFor="pseudonym" className="block text-sm font-medium mb-2">
-                    Pseudonym
-                  </label>
-                  <Input
-                    id="pseudonym"
-                    type="text"
-                    value={formData.pseudonym}
-                    onChange={(e) => setFormData({ ...formData, pseudonym: e.target.value })}
-                    placeholder="Your artist name or pseudonym"
-                  />
-                </div>
-
-                <div>
                   <label htmlFor="email" className="block text-sm font-medium mb-2">
                     <Mail className="w-4 h-4 inline mr-2" />
                     Email
@@ -418,6 +405,19 @@ export default function ProfileManager() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="your.email@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="pseudonym" className="block text-sm font-medium mb-2">
+                    Pseudonym
+                  </label>
+                  <Input
+                    id="pseudonym"
+                    type="text"
+                    value={formData.pseudonym}
+                    onChange={(e) => setFormData({ ...formData, pseudonym: e.target.value })}
+                    placeholder="Your artist name or pseudonym"
                   />
                 </div>
 
