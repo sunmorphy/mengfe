@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import RichTextEditor from '@/components/ui/rich-text-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Save, User as UserIcon, Mail, Calendar, Hash, Plus, X, Camera, Loader2 } from 'lucide-react'
+import { Save, User as UserIcon, Mail, Calendar, Hash, Plus, X, Camera, Loader2, Image as ImageIcon } from 'lucide-react'
 import { apiRequest } from '@/lib/utils'
 import { User } from '@/types'
 import { AlertDialog } from '@/components/ui/dialog'
@@ -17,6 +17,7 @@ export default function ProfileManager() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
+    pseudonym: '',
     email: '',
     role: '',
     short_summary: '',
@@ -26,6 +27,8 @@ export default function ProfileManager() {
   const [newSocial, setNewSocial] = useState('')
   const [newSocialIcon, setNewSocialIcon] = useState('')
   const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [bannerImage, setBannerImage] = useState<string | null>(null)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
   const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; message: string }>({
     open: false,
     title: '',
@@ -36,6 +39,7 @@ export default function ProfileManager() {
     if (user) {
       setFormData({
         name: user.name || '',
+        pseudonym: user.pseudonym || '',
         email: user.email || '',
         role: user.role || '',
         short_summary: user.short_summary || '',
@@ -43,6 +47,7 @@ export default function ProfileManager() {
         socials: user.socials || [],
       })
       setProfileImage(user.profile_image_path || null)
+      setBannerImage(user.banner_image_path || null)
     }
   }, [user])
 
@@ -78,9 +83,14 @@ export default function ProfileManager() {
   const updateProfile = async () => {
     try {
       setLoading(true)
+      const profileData = {
+        ...formData,
+        banner_image_path: bannerImage
+      }
+      
       await apiRequest('/auth/profile', {
         method: 'PUT',
-        body: JSON.stringify(formData),
+        body: JSON.stringify(profileData),
       })
 
       // Note: In a real app, you'd want to update the user context here
@@ -173,6 +183,57 @@ export default function ProfileManager() {
     }
   }
 
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: 'Banner image size must be less than 10MB'
+      })
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: 'Please select a valid image file'
+      })
+      return
+    }
+
+    try {
+      setUploadingBanner(true)
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await apiRequest<{ user: User; imageUrl: string }>('/auth/profile/banner', {
+        method: 'POST',
+        body: formData,
+      })
+
+      setBannerImage(response.user.banner_image_path || null)
+
+      setAlertDialog({
+        open: true,
+        title: 'Success',
+        message: 'Banner image updated successfully!'
+      })
+    } catch (error) {
+      console.error('Failed to upload banner image:', error)
+      setAlertDialog({
+        open: true,
+        title: 'Error',
+        message: 'Failed to upload banner image'
+      })
+    } finally {
+      setUploadingBanner(false)
+    }
+  }
+
   if (!user) {
     return <div>Loading...</div>
   }
@@ -230,10 +291,56 @@ export default function ProfileManager() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Banner Image */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
+                  Banner Image
+                </label>
+                <div className="relative">
+                  <div className="w-full h-48 rounded-lg overflow-hidden border-2 border-gray-200">
+                    {bannerImage ? (
+                      <img
+                        src={bannerImage}
+                        alt='Banner'
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-gray-200 to-gray-300 flex items-center justify-center">
+                        <div className="text-center">
+                          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500">No banner image</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <label
+                    htmlFor="banner-image-upload"
+                    className="absolute bottom-2 right-2 bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
+                  >
+                    {uploadingBanner ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                  </label>
+                  <input
+                    id="banner-image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerUpload}
+                    className="hidden"
+                    disabled={uploadingBanner}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Click the camera icon to upload a banner image (recommended: 1200x400px)
+                </p>
+              </div>
+
               {/* Profile Image */}
               <div className="flex flex-col items-center space-y-3">
                 <div className="relative">
-                  <div className="w-64 h-64 rounded-full overflow-hidden border-4 border-gray-200">
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200">
                     {profileImage ? (
                       <img
                         src={profileImage}
@@ -284,6 +391,19 @@ export default function ProfileManager() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Your full name"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="pseudonym" className="block text-sm font-medium mb-2">
+                    Pseudonym
+                  </label>
+                  <Input
+                    id="pseudonym"
+                    type="text"
+                    value={formData.pseudonym}
+                    onChange={(e) => setFormData({ ...formData, pseudonym: e.target.value })}
+                    placeholder="Your artist name or pseudonym"
                   />
                 </div>
 

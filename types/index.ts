@@ -2,12 +2,14 @@ export interface User {
   id: number
   username: string
   name?: string
+  pseudonym?: string
   email: string
   role?: string
   short_summary?: string
   summary?: string
   socials?: string[]
   profile_image_path?: string
+  banner_image_path?: string
   created_at: string
   updated_at: string
 }
