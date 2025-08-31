@@ -95,7 +95,7 @@ export default function ArtworkManager() {
 
   const fetchCategories = async () => {
     try {
-      const data = await apiRequest<Category[]>('/categories')
+      const data = await apiRequest<Category[]>('/categories/my')
       setCategories(data)
     } catch (error) {
       console.error('Failed to fetch categories:', error)

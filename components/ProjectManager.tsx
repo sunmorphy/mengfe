@@ -92,7 +92,7 @@ export default function ProjectManager() {
 
   const fetchCategories = async () => {
     try {
-      const data = await apiRequest<Category[]>('/categories')
+      const data = await apiRequest<Category[]>('/categories/my')
       setCategories(data)
     } catch (error) {
       console.error('Failed to fetch categories:', error)
