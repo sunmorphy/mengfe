@@ -28,7 +28,7 @@ export default function Dashboard({ onSectionChange }: DashboardProps) {
       const [artworksResponse, projectsResponse, categories] = await Promise.all([
         apiRequest<{ data: Artwork[], pagination: { total: number } }>('/artworks/my?limit=1000'),
         apiRequest<{ data: Project[], pagination: { total: number } }>('/projects/my?limit=1000'),
-        apiRequest<Category[]>('/categories'),
+        apiRequest<Category[]>('/categories/my'),
       ])
 
       setStats({
