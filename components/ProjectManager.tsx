@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Trash2, Edit3, Save, X, FolderOpen, Loader2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
-import { apiRequest } from '@/lib/utils'
+import { apiRequest, compressImage } from '@/lib/utils'
 import { Project, Category } from '@/types'
 import { ConfirmDialog } from '@/components/ui/dialog'
 
@@ -107,8 +107,9 @@ export default function ProjectManager() {
     setSubmitting(true)
     try {
       const formDataToSend = new FormData()
-      formData.images.forEach((image) => {
-        formDataToSend.append('images', image)
+      formData.images.forEach(async (image) => {
+        const compressedImage = await compressImage(image)
+        formDataToSend.append('images', compressedImage)
       })
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
@@ -136,14 +137,16 @@ export default function ProjectManager() {
       const formDataToSend = new FormData()
 
       // Add modified images with their indices
-      modifiedImages.forEach((file, index) => {
-        formDataToSend.append('modifiedImages', file)
+      modifiedImages.forEach(async (file, index) => {
+        const compressedImage = await compressImage(file)
+        formDataToSend.append('modifiedImages', compressedImage)
         formDataToSend.append('modifiedImageIndices', index.toString())
       })
 
       // Add newly added images
-      addedImages.forEach((file) => {
-        formDataToSend.append('addedImages', file)
+      addedImages.forEach(async (file) => {
+        const compressedImage = await compressImage(file)
+        formDataToSend.append('addedImages', compressedImage)
       })
 
       // Send indices of removed existing images

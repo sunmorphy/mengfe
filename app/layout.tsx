@@ -29,6 +29,7 @@ export default function RootLayout({
         <script src="https://unpkg.com/phosphor-icons@2.1.1" async></script>
       </head>
       <body
+        suppressHydrationWarning={true}
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>

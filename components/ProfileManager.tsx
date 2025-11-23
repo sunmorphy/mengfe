@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import RichTextEditor from '@/components/ui/rich-text-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Save, User as UserIcon, Mail, Calendar, Hash, Plus, X, Camera, Loader2, Image as ImageIcon } from 'lucide-react'
-import { apiRequest } from '@/lib/utils'
+import { apiRequest, compressImage } from '@/lib/utils'
 import { User } from '@/types'
 import { AlertDialog } from '@/components/ui/dialog'
 
@@ -93,7 +93,6 @@ export default function ProfileManager() {
         body: JSON.stringify(profileData),
       })
 
-      // Note: In a real app, you'd want to update the user context here
       setAlertDialog({
         open: true,
         title: 'Success',
@@ -136,7 +135,8 @@ export default function ProfileManager() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
+    const compressedFile = await compressImage(file);
+    if (compressedFile.size > 5 * 1024 * 1024) {
       setAlertDialog({
         open: true,
         title: 'Error',
@@ -145,7 +145,7 @@ export default function ProfileManager() {
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!compressedFile.type.startsWith('image/')) {
       setAlertDialog({
         open: true,
         title: 'Error',
@@ -157,7 +157,7 @@ export default function ProfileManager() {
     try {
       setUploadingImage(true)
       const formData = new FormData()
-      formData.append('image', file)
+      formData.append('image', compressedFile)
 
       const response = await apiRequest<{ user: User; imageUrl: string }>('/auth/profile/image', {
         method: 'POST',
@@ -187,7 +187,8 @@ export default function ProfileManager() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 10 * 1024 * 1024) {
+    const compressedFile = await compressImage(file);
+    if (compressedFile.size > 10 * 1024 * 1024) {
       setAlertDialog({
         open: true,
         title: 'Error',
@@ -196,7 +197,7 @@ export default function ProfileManager() {
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!compressedFile.type.startsWith('image/')) {
       setAlertDialog({
         open: true,
         title: 'Error',
@@ -208,7 +209,7 @@ export default function ProfileManager() {
     try {
       setUploadingBanner(true)
       const formData = new FormData()
-      formData.append('image', file)
+      formData.append('image', compressedFile)
 
       const response = await apiRequest<{ user: User; imageUrl: string }>('/auth/profile/banner', {
         method: 'POST',

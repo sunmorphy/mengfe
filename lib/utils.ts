@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import axios, { AxiosRequestConfig, AxiosError } from "axios"
+import Compressor from "compressorjs";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -24,32 +25,32 @@ export function getImageKitUrl(
   }
 ): string {
   if (!path) return ''
-  
+
   // If it's already a full URL (external image), return as is
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path
   }
-  
+
   // Remove leading slash if present
   const cleanPath = path.startsWith('/') ? path.slice(1) : path
-  
+
   // Build transformation string
   let transformationString = ''
   if (transformations) {
     const params: string[] = []
-    
+
     if (transformations.width) params.push(`w-${transformations.width}`)
     if (transformations.height) params.push(`h-${transformations.height}`)
     if (transformations.quality) params.push(`q-${transformations.quality}`)
     if (transformations.format) params.push(`f-${transformations.format}`)
     if (transformations.crop) params.push(`c-${transformations.crop}`)
     if (transformations.focus) params.push(`fo-${transformations.focus}`)
-    
+
     if (params.length > 0) {
       transformationString = `tr:${params.join(',')}/`
     }
   }
-  
+
   return `${IMAGEKIT_URL_ENDPOINT}/${transformationString}${cleanPath}`
 }
 
@@ -81,7 +82,7 @@ api.interceptors.response.use(
 )
 
 export async function apiRequest<T>(
-  endpoint: string, 
+  endpoint: string,
   options?: {
     method?: string
     body?: unknown
@@ -115,12 +116,27 @@ export async function apiRequest<T>(
     if (error instanceof Error && error.message === 'Authentication expired') {
       throw error
     }
-    
+
     if (axios.isAxiosError(error)) {
       const message = error.response?.data?.error || error.response?.data?.message || error.message
       throw new Error(message)
     }
-    
+
     throw new Error('Request failed')
   }
 }
+
+export const compressImage = (image: File): Promise<File | Blob> => {
+  return new Promise((resolve, reject) => {
+    new Compressor(image, {
+      quality: 0.5,
+      success(result) {
+        resolve(result);
+      },
+      error(err) {
+        console.log(err.message);
+        resolve(image); 
+      },
+    });
+  });
+};

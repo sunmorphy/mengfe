@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Trash2, Edit3, Save, X, Image as ImageIcon, Loader2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
-import { apiRequest } from '@/lib/utils'
+import { apiRequest, compressImage } from '@/lib/utils'
 import { Artwork, Category } from '@/types'
 import { ConfirmDialog } from '@/components/ui/dialog'
 
@@ -110,7 +110,8 @@ export default function ArtworkManager() {
     setSubmitting(true)
     try {
       const formDataToSend = new FormData()
-      formDataToSend.append('image', formData.image)
+      const compressedImage = await compressImage(formData.image)
+      formDataToSend.append('image', compressedImage)
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
       formDataToSend.append('categoryIds', JSON.stringify(formData.categoryIds))
@@ -135,7 +136,8 @@ export default function ArtworkManager() {
     try {
       const formDataToSend = new FormData()
       if (formData.image) {
-        formDataToSend.append('image', formData.image)
+        const compressedImage = await compressImage(formData.image)
+        formDataToSend.append('image', compressedImage)
       }
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
