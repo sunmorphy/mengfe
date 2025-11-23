@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script src="https://unpkg.com/phosphor-icons@1.4.2" async></script>
+        <script src="https://unpkg.com/phosphor-icons@2.1.1" async></script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
