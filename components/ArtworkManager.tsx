@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Trash2, Edit3, Save, X, Image as ImageIcon, Loader2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, Edit3, Save, X, Image as ImageIcon, Loader2, Search, Filter, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 import { apiRequest, compressImage } from '@/lib/utils'
 import { Artwork, Category } from '@/types'
 import { ConfirmDialog } from '@/components/ui/dialog'
@@ -34,13 +34,18 @@ export default function ArtworkManager() {
     type: 'portfolio' as 'portfolio' | 'scratch',
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [drafts, setDrafts] = useState<any[]>([])
+  const [showDraftList, setShowDraftList] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; artworkId: number | null }>({
     open: false,
     artworkId: null,
   })
 
+  const DRAFTS_KEY = 'artwork_drafts'
+
   useEffect(() => {
     Promise.all([fetchCategories()])
+    loadDrafts()
   }, [])
 
   useEffect(() => {
@@ -202,6 +207,73 @@ export default function ArtworkManager() {
     setEditingId(null)
   }
 
+  const saveNewDraft = () => {
+    try {
+      const draftName = formData.title.trim() || `Draft ${new Date().toLocaleString()}`
+      const newDraft = {
+        id: Date.now().toString(),
+        name: draftName,
+        title: formData.title,
+        description: formData.description,
+        categoryIds: formData.categoryIds,
+        type: formData.type,
+        imagePreview: imagePreview,
+        timestamp: new Date().toISOString(),
+      }
+
+      const existingDrafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]')
+      const updatedDrafts = [...existingDrafts, newDraft]
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts))
+      setDrafts(updatedDrafts)
+
+      // Reset form after saving
+      resetForm()
+    } catch (error) {
+      console.error('Failed to save draft:', error)
+    }
+  }
+
+  const loadDrafts = () => {
+    try {
+      const savedDrafts = localStorage.getItem(DRAFTS_KEY)
+      if (savedDrafts) {
+        setDrafts(JSON.parse(savedDrafts))
+      }
+    } catch (error) {
+      console.error('Failed to load drafts:', error)
+    }
+  }
+
+  const restoreDraft = (draftId: string) => {
+    try {
+      const draft = drafts.find(d => d.id === draftId)
+      if (draft) {
+        setFormData({
+          title: draft.title || '',
+          description: draft.description || '',
+          categoryIds: draft.categoryIds || [],
+          image: null,
+          type: draft.type || 'portfolio',
+        })
+        setImagePreview(draft.imagePreview || null)
+        setShowCreateForm(true)
+        setShowDraftList(false)
+      }
+    } catch (error) {
+      console.error('Failed to restore draft:', error)
+    }
+  }
+
+  const deleteDraft = (draftId: string) => {
+    try {
+      const updatedDrafts = drafts.filter(d => d.id !== draftId)
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts))
+      setDrafts(updatedDrafts)
+    } catch (error) {
+      console.error('Failed to delete draft:', error)
+    }
+  }
+
   const handleCategoryToggle = (categoryId: number) => {
     setFormData(prev => ({
       ...prev,
@@ -258,11 +330,71 @@ export default function ArtworkManager() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Artworks</h1>
             <p className="text-gray-600 mt-2">Manage your artwork collection</p>
           </div>
-          <Button onClick={() => setShowCreateForm(true)} className="w-full sm:w-auto">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Artwork
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowCreateForm(true)} className="w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Artwork
+            </Button>
+            {drafts.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowDraftList(!showDraftList)}
+                className="w-full sm:w-auto"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Drafts ({drafts.length})
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Drafts List */}
+        {showDraftList && drafts.length > 0 && !showCreateForm && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-lg text-blue-900">Saved Drafts</CardTitle>
+              <CardDescription className="text-blue-700">
+                Click on a draft to restore it and continue working
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {drafts.map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200 hover:border-blue-300 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 truncate">{draft.name}</h4>
+                      <p className="text-sm text-gray-600 truncate">
+                        {draft.description || 'No description'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Saved: {new Date(draft.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        onClick={() => restoreDraft(draft.id)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Restore
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => deleteDraft(draft.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Search and Filter */}
         {!showCreateForm && (
@@ -534,6 +666,17 @@ export default function ArtworkManager() {
                     : (editingId ? 'Update' : 'Create')
                   }
                 </Button>
+                {!editingId && (
+                  <Button
+                    variant="secondary"
+                    onClick={saveNewDraft}
+                    disabled={submitting || !formData.title.trim()}
+                    className="w-full sm:w-auto"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Save to Draft
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={resetForm}
