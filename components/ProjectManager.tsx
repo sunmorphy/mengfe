@@ -22,6 +22,8 @@ export default function ProjectManager() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
+  const [selectedType, setSelectedType] = useState<'all' | 'portfolio' | 'scratch'>('all')
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 25
   const [formData, setFormData] = useState({
@@ -29,6 +31,7 @@ export default function ProjectManager() {
     description: '',
     categoryIds: [] as number[],
     images: [] as File[],
+    type: 'portfolio' as 'portfolio' | 'scratch',
   })
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [existingImages, setExistingImages] = useState<string[]>([]) // Track original images from server
@@ -46,7 +49,7 @@ export default function ProjectManager() {
 
   useEffect(() => {
     fetchProjects()
-  }, [currentPage, searchTerm, selectedCategoryIds])
+  }, [currentPage, searchTerm, selectedCategoryIds, selectedType])
 
 
   const fetchProjects = async () => {
@@ -63,6 +66,10 @@ export default function ProjectManager() {
 
       if (selectedCategoryIds.length > 0) {
         params.append('categoryIds', JSON.stringify(selectedCategoryIds))
+      }
+
+      if (selectedType !== 'all') {
+        params.append('type', selectedType)
       }
 
       const response = await apiRequest<{
@@ -107,13 +114,21 @@ export default function ProjectManager() {
     setSubmitting(true)
     try {
       const formDataToSend = new FormData()
-      formData.images.forEach(async (image) => {
-        const compressedImage = await compressImage(image)
+
+      // Compress all images and wait for completion
+      const compressedImages = await Promise.all(
+        formData.images.map(image => compressImage(image))
+      )
+
+      // Append all compressed images to FormData
+      compressedImages.forEach(compressedImage => {
         formDataToSend.append('images', compressedImage)
       })
+
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
       formDataToSend.append('categoryIds', JSON.stringify(formData.categoryIds))
+      formDataToSend.append('type', formData.type)
 
       await apiRequest<Project>('/projects', {
         method: 'POST',
@@ -136,18 +151,32 @@ export default function ProjectManager() {
     try {
       const formDataToSend = new FormData()
 
-      // Add modified images with their indices
-      modifiedImages.forEach(async (file, index) => {
-        const compressedImage = await compressImage(file)
-        formDataToSend.append('modifiedImages', compressedImage)
-        formDataToSend.append('modifiedImageIndices', index.toString())
-      })
+      // Compress modified images and wait for completion
+      if (modifiedImages.size > 0) {
+        const modifiedImagesArray = Array.from(modifiedImages.entries())
+        const compressedModified = await Promise.all(
+          modifiedImagesArray.map(([_, file]) => compressImage(file))
+        )
 
-      // Add newly added images
-      addedImages.forEach(async (file) => {
-        const compressedImage = await compressImage(file)
-        formDataToSend.append('addedImages', compressedImage)
-      })
+        // Append compressed modified images with their indices
+        compressedModified.forEach((compressedImage, i) => {
+          const [index] = modifiedImagesArray[i]
+          formDataToSend.append('modifiedImages', compressedImage)
+          formDataToSend.append('modifiedImageIndices', index.toString())
+        })
+      }
+
+      // Compress newly added images and wait for completion
+      if (addedImages.length > 0) {
+        const compressedAdded = await Promise.all(
+          addedImages.map(file => compressImage(file))
+        )
+
+        // Append all compressed added images
+        compressedAdded.forEach(compressedImage => {
+          formDataToSend.append('addedImages', compressedImage)
+        })
+      }
 
       // Send indices of removed existing images
       if (removedImageIndices.size > 0) {
@@ -157,6 +186,7 @@ export default function ProjectManager() {
       formDataToSend.append('title', formData.title)
       formDataToSend.append('description', formData.description)
       formDataToSend.append('categoryIds', JSON.stringify(formData.categoryIds))
+      formDataToSend.append('type', formData.type)
 
       await apiRequest<Project>(`/projects/${id}`, {
         method: 'PUT',
@@ -196,6 +226,7 @@ export default function ProjectManager() {
       description: project.description || '',
       categoryIds: project.project_categories.map(pc => pc.category.id),
       images: [],
+      type: project.type || 'portfolio',
     })
     // Initialize editing state for images
     setExistingImages(project.batch_image_path)
@@ -212,6 +243,7 @@ export default function ProjectManager() {
       description: '',
       categoryIds: [],
       images: [],
+      type: 'portfolio',
     })
     setImagePreviews([])
     setExistingImages([])
@@ -320,7 +352,7 @@ export default function ProjectManager() {
   // Reset to first page when search/filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, selectedCategoryIds])
+  }, [searchTerm, selectedCategoryIds, selectedType])
 
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
@@ -365,6 +397,56 @@ export default function ProjectManager() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-full text-gray-900 placeholder-gray-500"
               />
+            </div>
+            <div className="relative w-full sm:w-48">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <button
+                onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
+                className="pl-10 w-full h-10 px-3 py-2 border border-gray-300 bg-white rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left text-gray-900 flex items-center justify-between"
+              >
+                <span className="truncate">
+                  {selectedType === 'all' ? 'All Types' : selectedType === 'portfolio' ? 'Portfolio' : 'Scratch'}
+                </span>
+                <svg className="w-4 h-4 text-gray-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {typeDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setSelectedType('all')
+                        setTypeDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded transition-colors ${selectedType === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                    >
+                      All Types
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedType('portfolio')
+                        setTypeDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded transition-colors ${selectedType === 'portfolio' ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                    >
+                      Portfolio
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedType('scratch')
+                        setTypeDropdownOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded transition-colors ${selectedType === 'scratch' ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                    >
+                      Scratch
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="relative w-full sm:w-64">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -532,6 +614,34 @@ export default function ProjectManager() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-2">Type <span className="text-red-500">*</span></label>
+                <div className="flex gap-4">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="type"
+                      value="portfolio"
+                      checked={formData.type === 'portfolio'}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value as 'portfolio' | 'scratch' })}
+                      className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Portfolio</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="type"
+                      value="scratch"
+                      checked={formData.type === 'scratch'}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value as 'portfolio' | 'scratch' })}
+                      className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Scratch</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-2">Categories</label>
                 <div className="flex flex-wrap gap-2">
                   {categories.map((category) => (
@@ -586,13 +696,13 @@ export default function ProjectManager() {
           <Card>
             <CardContent className="p-12 text-center">
               <div className="text-gray-400 mb-4">
-                {searchTerm || selectedCategoryIds.length > 0 ? <Search className="w-12 h-12 mx-auto" /> : <FolderOpen className="w-12 h-12 mx-auto" />}
+                {searchTerm || selectedCategoryIds.length > 0 || selectedType !== 'all' ? <Search className="w-12 h-12 mx-auto" /> : <FolderOpen className="w-12 h-12 mx-auto" />}
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm || selectedCategoryIds.length > 0 ? 'No projects found' : 'No projects yet'}
+                {searchTerm || selectedCategoryIds.length > 0 || selectedType !== 'all' ? 'No projects found' : 'No projects yet'}
               </h3>
               <p className="text-gray-600 mb-4">
-                {searchTerm || selectedCategoryIds.length > 0
+                {searchTerm || selectedCategoryIds.length > 0 || selectedType !== 'all'
                   ? 'No projects match your current search and filter criteria. Try adjusting your search terms or filters.'
                   : 'Create your first project collection.'
                 }
@@ -632,6 +742,12 @@ export default function ProjectManager() {
                         <h3 className="font-medium text-md line-clamp-1 mr-2">
                           {project.title}
                         </h3>
+                        <span className={`px-2 py-1 text-xs rounded-full ${project.type === 'portfolio'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-orange-100 text-orange-700'
+                          }`}>
+                          {project.type === 'portfolio' ? 'Portfolio' : 'Scratch'}
+                        </span>
                         <p className="text-sm text-gray-600">
                           {project.description || ''}
                         </p>

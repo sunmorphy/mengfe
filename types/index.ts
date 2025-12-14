@@ -37,6 +37,7 @@ export interface Project {
   batch_image_path: string[]
   title: string
   description?: string
+  type: 'portfolio' | 'scratch'
   created_at: string
   updated_at: string
   project_categories: { category: Category }[]
