@@ -9,6 +9,15 @@ import { Plus, Trash2, Edit3, Save, X, Image as ImageIcon, Loader2, Search, Filt
 import { apiRequest, compressImage } from '@/lib/utils'
 import { Artwork, Category } from '@/types'
 import { ConfirmDialog } from '@/components/ui/dialog'
+import { useDrafts } from '@/hooks/useDrafts'
+
+interface ArtworkDraftData {
+  title: string
+  description: string
+  categoryIds: number[]
+  type: 'portfolio' | 'scratch'
+  imagePreview: string | null
+}
 
 export default function ArtworkManager() {
   const [artworks, setArtworks] = useState<Artwork[]>([])
@@ -34,18 +43,14 @@ export default function ArtworkManager() {
     type: 'portfolio' as 'portfolio' | 'scratch',
   })
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [drafts, setDrafts] = useState<any[]>([])
-  const [showDraftList, setShowDraftList] = useState(false)
+  const { drafts, showDraftList, setShowDraftList, saveDraft, restoreDraft, deleteDraft, activeDraftId, setActiveDraftId } = useDrafts<ArtworkDraftData>('artwork_drafts')
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; artworkId: number | null }>({
     open: false,
     artworkId: null,
   })
 
-  const DRAFTS_KEY = 'artwork_drafts'
-
   useEffect(() => {
     Promise.all([fetchCategories()])
-    loadDrafts()
   }, [])
 
   useEffect(() => {
@@ -205,72 +210,35 @@ export default function ArtworkManager() {
     setImagePreview(null)
     setShowCreateForm(false)
     setEditingId(null)
+    setActiveDraftId(null)
   }
 
   const saveNewDraft = () => {
-    try {
-      const draftName = formData.title.trim() || `Draft ${new Date().toLocaleString()}`
-      const newDraft = {
-        id: Date.now().toString(),
-        name: draftName,
-        title: formData.title,
-        description: formData.description,
-        categoryIds: formData.categoryIds,
-        type: formData.type,
-        imagePreview: imagePreview,
-        timestamp: new Date().toISOString(),
-      }
-
-      const existingDrafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]')
-      const updatedDrafts = [...existingDrafts, newDraft]
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts))
-      setDrafts(updatedDrafts)
-
-      // Reset form after saving
-      resetForm()
-    } catch (error) {
-      console.error('Failed to save draft:', error)
+    const draftName = formData.title.trim() || `Draft ${new Date().toLocaleString()}`
+    const draftData: ArtworkDraftData = {
+      title: formData.title,
+      description: formData.description,
+      categoryIds: formData.categoryIds,
+      type: formData.type,
+      imagePreview: imagePreview,
     }
+    saveDraft(draftName, draftData, activeDraftId || undefined)
+    resetForm()
   }
 
-  const loadDrafts = () => {
-    try {
-      const savedDrafts = localStorage.getItem(DRAFTS_KEY)
-      if (savedDrafts) {
-        setDrafts(JSON.parse(savedDrafts))
-      }
-    } catch (error) {
-      console.error('Failed to load drafts:', error)
-    }
-  }
-
-  const restoreDraft = (draftId: string) => {
-    try {
-      const draft = drafts.find(d => d.id === draftId)
-      if (draft) {
-        setFormData({
-          title: draft.title || '',
-          description: draft.description || '',
-          categoryIds: draft.categoryIds || [],
-          image: null,
-          type: draft.type || 'portfolio',
-        })
-        setImagePreview(draft.imagePreview || null)
-        setShowCreateForm(true)
-        setShowDraftList(false)
-      }
-    } catch (error) {
-      console.error('Failed to restore draft:', error)
-    }
-  }
-
-  const deleteDraft = (draftId: string) => {
-    try {
-      const updatedDrafts = drafts.filter(d => d.id !== draftId)
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts))
-      setDrafts(updatedDrafts)
-    } catch (error) {
-      console.error('Failed to delete draft:', error)
+  const handleRestoreDraft = (draftId: string) => {
+    const draftData = restoreDraft(draftId)
+    if (draftData) {
+      setFormData({
+        title: draftData.title || '',
+        description: draftData.description || '',
+        categoryIds: draftData.categoryIds || [],
+        image: null,
+        type: draftData.type || 'portfolio',
+      })
+      setImagePreview(draftData.imagePreview || null)
+      setShowCreateForm(true)
+      setShowDraftList(false)
     }
   }
 
@@ -367,7 +335,7 @@ export default function ArtworkManager() {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-gray-900 truncate">{draft.name}</h4>
                       <p className="text-sm text-gray-600 truncate">
-                        {draft.description || 'No description'}
+                        {draft.data?.description || 'No description'}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Saved: {new Date(draft.timestamp).toLocaleString()}
@@ -376,7 +344,7 @@ export default function ArtworkManager() {
                     <div className="flex gap-2 ml-4">
                       <Button
                         size="sm"
-                        onClick={() => restoreDraft(draft.id)}
+                        onClick={() => handleRestoreDraft(draft.id)}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         Restore

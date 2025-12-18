@@ -9,6 +9,15 @@ import { Plus, Trash2, Edit3, Save, X, FolderOpen, Loader2, Search, Filter, Chev
 import { apiRequest, compressImage } from '@/lib/utils'
 import { Project, Category } from '@/types'
 import { ConfirmDialog } from '@/components/ui/dialog'
+import { useDrafts } from '@/hooks/useDrafts'
+
+interface ProjectDraftData {
+  title: string
+  description: string
+  categoryIds: number[]
+  type: 'portfolio' | 'scratch'
+  imagePreviews: string[]
+}
 
 export default function ProjectManager() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -38,18 +47,14 @@ export default function ProjectManager() {
   const [removedImageIndices, setRemovedImageIndices] = useState<Set<number>>(new Set()) // Track which original images to remove
   const [modifiedImages, setModifiedImages] = useState<Map<number, File>>(new Map()) // Track which images are modified by index
   const [addedImages, setAddedImages] = useState<File[]>([]) // Track newly added images
-  const [drafts, setDrafts] = useState<any[]>([])
-  const [showDraftList, setShowDraftList] = useState(false)
+  const { drafts, showDraftList, setShowDraftList, saveDraft, restoreDraft, deleteDraft, activeDraftId, setActiveDraftId } = useDrafts<ProjectDraftData>('project_drafts')
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; projectId: number | null }>({
     open: false,
     projectId: null,
   })
 
-  const DRAFTS_KEY = 'project_drafts'
-
   useEffect(() => {
     Promise.all([fetchCategories()])
-    loadDrafts()
   }, [])
 
   useEffect(() => {
@@ -257,72 +262,35 @@ export default function ProjectManager() {
     setAddedImages([])
     setShowCreateForm(false)
     setEditingId(null)
+    setActiveDraftId(null)
   }
 
   const saveNewDraft = () => {
-    try {
-      const draftName = formData.title.trim() || `Draft ${new Date().toLocaleString()}`
-      const newDraft = {
-        id: Date.now().toString(),
-        name: draftName,
-        title: formData.title,
-        description: formData.description,
-        categoryIds: formData.categoryIds,
-        type: formData.type,
-        imagePreviews: imagePreviews,
-        timestamp: new Date().toISOString(),
-      }
-
-      const existingDrafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]')
-      const updatedDrafts = [...existingDrafts, newDraft]
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts))
-      setDrafts(updatedDrafts)
-
-      // Reset form after saving
-      resetForm()
-    } catch (error) {
-      console.error('Failed to save draft:', error)
+    const draftName = formData.title.trim() || `Draft ${new Date().toLocaleString()}`
+    const draftData: ProjectDraftData = {
+      title: formData.title,
+      description: formData.description,
+      categoryIds: formData.categoryIds,
+      type: formData.type,
+      imagePreviews: imagePreviews,
     }
+    saveDraft(draftName, draftData, activeDraftId || undefined)
+    resetForm()
   }
 
-  const loadDrafts = () => {
-    try {
-      const savedDrafts = localStorage.getItem(DRAFTS_KEY)
-      if (savedDrafts) {
-        setDrafts(JSON.parse(savedDrafts))
-      }
-    } catch (error) {
-      console.error('Failed to load drafts:', error)
-    }
-  }
-
-  const restoreDraft = (draftId: string) => {
-    try {
-      const draft = drafts.find(d => d.id === draftId)
-      if (draft) {
-        setFormData({
-          title: draft.title || '',
-          description: draft.description || '',
-          categoryIds: draft.categoryIds || [],
-          images: [],
-          type: draft.type || 'portfolio',
-        })
-        setImagePreviews(draft.imagePreviews || [])
-        setShowCreateForm(true)
-        setShowDraftList(false)
-      }
-    } catch (error) {
-      console.error('Failed to restore draft:', error)
-    }
-  }
-
-  const deleteDraft = (draftId: string) => {
-    try {
-      const updatedDrafts = drafts.filter(d => d.id !== draftId)
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify(updatedDrafts))
-      setDrafts(updatedDrafts)
-    } catch (error) {
-      console.error('Failed to delete draft:', error)
+  const handleRestoreDraft = (draftId: string) => {
+    const draftData = restoreDraft(draftId)
+    if (draftData) {
+      setFormData({
+        title: draftData.title || '',
+        description: draftData.description || '',
+        categoryIds: draftData.categoryIds || [],
+        images: [],
+        type: draftData.type || 'portfolio',
+      })
+      setImagePreviews(draftData.imagePreviews || [])
+      setShowCreateForm(true)
+      setShowDraftList(false)
     }
   }
 
@@ -489,7 +457,7 @@ export default function ProjectManager() {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-gray-900 truncate">{draft.name}</h4>
                       <p className="text-sm text-gray-600 truncate">
-                        {draft.description || 'No description'}
+                        {draft.data?.description || 'No description'}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Saved: {new Date(draft.timestamp).toLocaleString()}
@@ -498,7 +466,7 @@ export default function ProjectManager() {
                     <div className="flex gap-2 ml-4">
                       <Button
                         size="sm"
-                        onClick={() => restoreDraft(draft.id)}
+                        onClick={() => handleRestoreDraft(draft.id)}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
                         Restore
