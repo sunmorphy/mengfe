@@ -5,19 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Trash2, Edit3, Save, X, FolderOpen, Loader2, Search, Filter, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
+import { Plus, Trash2, Edit3, Save, X, FolderOpen, Loader2, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
 import { apiRequest, compressImage } from '@/lib/utils'
 import { Project, Category } from '@/types'
 import { ConfirmDialog } from '@/components/ui/dialog'
-import { useDrafts } from '@/hooks/useDrafts'
-
-interface ProjectDraftData {
-  title: string
-  description: string
-  categoryIds: number[]
-  type: 'portfolio' | 'scratch'
-  imagePreviews: string[]
-}
+import { ProjectCard } from '@/components/cards'
 
 export default function ProjectManager() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -41,13 +33,13 @@ export default function ProjectManager() {
     categoryIds: [] as number[],
     images: [] as File[],
     type: 'portfolio' as 'portfolio' | 'scratch',
+    published: true,
   })
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [existingImages, setExistingImages] = useState<string[]>([]) // Track original images from server
   const [removedImageIndices, setRemovedImageIndices] = useState<Set<number>>(new Set()) // Track which original images to remove
   const [modifiedImages, setModifiedImages] = useState<Map<number, File>>(new Map()) // Track which images are modified by index
   const [addedImages, setAddedImages] = useState<File[]>([]) // Track newly added images
-  const { drafts, showDraftList, setShowDraftList, saveDraft, restoreDraft, deleteDraft, activeDraftId, setActiveDraftId } = useDrafts<ProjectDraftData>('project_drafts')
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; projectId: number | null }>({
     open: false,
     projectId: null,
@@ -113,8 +105,6 @@ export default function ProjectManager() {
       setCategories(data)
     } catch (error) {
       console.error('Failed to fetch categories:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -139,6 +129,7 @@ export default function ProjectManager() {
       formDataToSend.append('description', formData.description)
       formDataToSend.append('categoryIds', JSON.stringify(formData.categoryIds))
       formDataToSend.append('type', formData.type)
+      formDataToSend.append('published', formData.published.toString())
 
       await apiRequest<Project>('/projects', {
         method: 'POST',
@@ -197,6 +188,7 @@ export default function ProjectManager() {
       formDataToSend.append('description', formData.description)
       formDataToSend.append('categoryIds', JSON.stringify(formData.categoryIds))
       formDataToSend.append('type', formData.type)
+      formDataToSend.append('published', formData.published.toString())
 
       await apiRequest<Project>(`/projects/${id}`, {
         method: 'PUT',
@@ -237,6 +229,7 @@ export default function ProjectManager() {
       categoryIds: project.project_categories.map(pc => pc.category.id),
       images: [],
       type: project.type || 'portfolio',
+      published: project.published ?? true,
     })
     // Initialize editing state for images
     setExistingImages(project.batch_image_path)
@@ -254,6 +247,7 @@ export default function ProjectManager() {
       categoryIds: [],
       images: [],
       type: 'portfolio',
+      published: true,
     })
     setImagePreviews([])
     setExistingImages([])
@@ -262,36 +256,6 @@ export default function ProjectManager() {
     setAddedImages([])
     setShowCreateForm(false)
     setEditingId(null)
-    setActiveDraftId(null)
-  }
-
-  const saveNewDraft = () => {
-    const draftName = formData.title.trim() || `Draft ${new Date().toLocaleString()}`
-    const draftData: ProjectDraftData = {
-      title: formData.title,
-      description: formData.description,
-      categoryIds: formData.categoryIds,
-      type: formData.type,
-      imagePreviews: imagePreviews,
-    }
-    saveDraft(draftName, draftData, activeDraftId || undefined)
-    resetForm()
-  }
-
-  const handleRestoreDraft = (draftId: string) => {
-    const draftData = restoreDraft(draftId)
-    if (draftData) {
-      setFormData({
-        title: draftData.title || '',
-        description: draftData.description || '',
-        categoryIds: draftData.categoryIds || [],
-        images: [],
-        type: draftData.type || 'portfolio',
-      })
-      setImagePreviews(draftData.imagePreviews || [])
-      setShowCreateForm(true)
-      setShowDraftList(false)
-    }
   }
 
   const handleCategoryToggle = (categoryId: number) => {
@@ -425,66 +389,8 @@ export default function ProjectManager() {
               <Plus className="w-4 h-4 mr-2" />
               Create Project
             </Button>
-            {drafts.length > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => setShowDraftList(!showDraftList)}
-                className="w-full sm:w-auto"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Drafts ({drafts.length})
-              </Button>
-            )}
           </div>
         </div>
-
-        {/* Drafts List */}
-        {showDraftList && drafts.length > 0 && !showCreateForm && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardHeader>
-              <CardTitle className="text-lg text-blue-900">Saved Drafts</CardTitle>
-              <CardDescription className="text-blue-700">
-                Click on a draft to restore it and continue working
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {drafts.map((draft) => (
-                  <div
-                    key={draft.id}
-                    className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200 hover:border-blue-300 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate">{draft.name}</h4>
-                      <p className="text-sm text-gray-600 truncate">
-                        {draft.data?.description || 'No description'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Saved: {new Date(draft.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        size="sm"
-                        onClick={() => handleRestoreDraft(draft.id)}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Restore
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteDraft(draft.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Search and Filter */}
         {!showCreateForm && (
@@ -624,6 +530,7 @@ export default function ProjectManager() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Project title"
+                  disabled={submitting}
                 />
               </div>
 
@@ -637,6 +544,7 @@ export default function ProjectManager() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Project description"
                   rows={3}
+                  disabled={submitting}
                 />
               </div>
 
@@ -724,6 +632,7 @@ export default function ProjectManager() {
                       checked={formData.type === 'portfolio'}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value as 'portfolio' | 'scratch' })}
                       className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      disabled={submitting}
                     />
                     <span className="text-sm font-medium text-gray-700">Portfolio</span>
                   </label>
@@ -735,6 +644,7 @@ export default function ProjectManager() {
                       checked={formData.type === 'scratch'}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value as 'portfolio' | 'scratch' })}
                       className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      disabled={submitting}
                     />
                     <span className="text-sm font-medium text-gray-700">Scratch</span>
                   </label>
@@ -744,26 +654,45 @@ export default function ProjectManager() {
               <div>
                 <label className="block text-sm font-medium mb-2">Categories</label>
                 <div className="flex flex-wrap gap-2">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => handleCategoryToggle(category.id)}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${formData.categoryIds.includes(category.id)
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-                        }`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => handleCategoryToggle(category.id)}
+                        disabled={submitting}
+                        className={`px-3 py-1 rounded-full text-sm border transition-colors ${formData.categoryIds.includes(category.id)
+                          ? 'bg-blue-500 text-white border-blue-500'
+                          : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                          }`}
+                      >
+                        {category.name}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-500">No categories available</p>
+                  )}
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.published}
+                    onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
+                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={submitting}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Published</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">Uncheck to save as draft without publishing</p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={() => editingId ? updateProject(editingId) : createProject()}
-                  disabled={submitting || !formData.title.trim() || (!editingId && formData.images.length === 0)}
+                  disabled={submitting || !formData.title.trim() || (!editingId && formData.images.length === 0 && imagePreviews.length === 0)}
                   className="w-full sm:w-auto"
                 >
                   {submitting ? (
@@ -776,22 +705,12 @@ export default function ProjectManager() {
                     : (editingId ? 'Update' : 'Create')
                   }
                 </Button>
-                {!editingId && (
-                  <Button
-                    variant="secondary"
-                    onClick={saveNewDraft}
-                    disabled={submitting || !formData.title.trim()}
-                    className="w-full sm:w-auto"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Save to Draft
-                  </Button>
-                )}
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={resetForm}
-                  className="w-full sm:w-auto"
                   disabled={submitting}
+                  className="w-full sm:w-auto"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancel
@@ -830,78 +749,12 @@ export default function ProjectManager() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
               {projects.map((project) => (
-                <Card key={project.id} className="overflow-hidden">
-                  <div className="aspect-video bg-gray-100 relative">
-                    {/* Image count badge in top-right */}
-                    <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm z-10">
-                      {project.batch_image_path.length} images
-                    </div>
-                    <div className="aspect-square bg-gray-100 relative">
-                      <img
-                        src={project.batch_image_path[0]}
-                        alt={project.title || 'Untitled'}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder-image.svg'
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between mb-2">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-md line-clamp-1 mr-2">
-                          {project.title}
-                        </h3>
-                        <span className={`px-2 py-1 text-xs rounded-full ${project.type === 'portfolio'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-orange-100 text-orange-700'
-                          }`}>
-                          {project.type === 'portfolio' ? 'Portfolio' : 'Scratch'}
-                        </span>
-                        <p className="text-sm text-gray-600">
-                          {project.description || ''}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-center space-y-2">
-                        <div className="text-xs text-gray-500 whitespace-nowrap">
-                          {new Date(project.updated_at || project.created_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => startEdit(project)} className="flex-1 sm:flex-none">
-                            <Edit3 className="w-4 h-4 sm:mr-0 mr-2" />
-                            <span className="sm:hidden">Edit</span>
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => showDeleteDialog(project.id)} className="flex-1 sm:flex-none">
-                            <Trash2 className="w-4 h-4 sm:mr-0 mr-2" />
-                            <span className="sm:hidden">Delete</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1 min-h-6 mt-8">
-                      {project.project_categories.length > 0 ?
-                        project.project_categories.map((pc) => (
-                          <span
-                            key={pc.category.id}
-                            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
-                          >
-                            {pc.category.name}
-                          </span>
-                        ))
-                        : <span
-                          className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full"
-                        >
-                          No Categories
-                        </span>
-                      }
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onEdit={startEdit}
+                  onDelete={showDeleteDialog}
+                />
               ))}
             </div>
 

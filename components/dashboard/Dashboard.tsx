@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Image, FolderOpen, Tag, TrendingUp } from 'lucide-react'
 import { apiRequest } from '@/lib/utils'
 import { Artwork, Project, Category } from '@/types'
-import ProductivityChart from '@/components/ProductivityChart'
+import ProductivityChart from './ProductivityChart'
 
 interface DashboardProps {
   onSectionChange?: (section: string) => void

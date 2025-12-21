@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import LoginForm from './LoginForm'
+import LoginForm from './auth/LoginForm'
 import Sidebar from './Sidebar'
-import Dashboard from './Dashboard'
-import CategoryManager from './CategoryManager'
-import ArtworkManager from './ArtworkManager'
-import ProjectManager from './ProjectManager'
-import ProfileManager from './ProfileManager'
+import Dashboard from './dashboard/Dashboard'
+import CategoryManager from './managers/CategoryManager'
+import ArtworkManager from './managers/ArtworkManager'
+import ProjectManager from './managers/ProjectManager'
+import AnimationManager from './managers/AnimationManager'
+import ProfileManager from './managers/ProfileManager'
 
 export default function CMS() {
   const { user, loading } = useAuth()
@@ -53,6 +54,8 @@ export default function CMS() {
         return <ArtworkManager />
       case 'projects':
         return <ProjectManager />
+      case 'animations':
+        return <AnimationManager />
       case 'profile':
         return <ProfileManager />
       default:

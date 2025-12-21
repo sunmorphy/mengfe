@@ -27,6 +27,7 @@ export interface Artwork {
   title?: string
   description?: string
   type: 'portfolio' | 'scratch'
+  published: boolean
   created_at: string
   updated_at: string
   artwork_categories: { category: Category }[]
@@ -38,9 +39,21 @@ export interface Project {
   title: string
   description?: string
   type: 'portfolio' | 'scratch'
+  published: boolean
   created_at: string
   updated_at: string
   project_categories: { category: Category }[]
+}
+
+export interface Animation {
+  id: number
+  batch_video_path: string[]
+  title: string
+  description?: string
+  published: boolean
+  created_at: string
+  updated_at: string
+  animation_categories: { category: Category }[]
 }
 
 export interface LoginCredentials {

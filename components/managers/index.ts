@@ -1,0 +1,5 @@
+export { default as ArtworkManager } from './ArtworkManager'
+export { default as ProjectManager } from './ProjectManager'
+export { default as AnimationManager } from './AnimationManager'
+export { default as CategoryManager } from './CategoryManager'
+export { default as ProfileManager } from './ProfileManager'

@@ -6,6 +6,7 @@ import {
   Home,
   Image,
   FolderOpen,
+  Film,
   Tag,
   User,
   LogOut
@@ -25,6 +26,7 @@ export default function Sidebar({ activeSection, onSectionChange, isOpen = true,
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'artworks', label: 'Artworks', icon: Image },
     { id: 'projects', label: 'Projects', icon: FolderOpen },
+    { id: 'animations', label: 'Animations', icon: Film },
     { id: 'categories', label: 'Categories', icon: Tag },
     { id: 'profile', label: 'Profile', icon: User },
   ]
